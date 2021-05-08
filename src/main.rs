@@ -6,6 +6,7 @@ use deck::{Deck, DeckListResponse, DeckResponse};
 use disk::Disk;
 use futures::{future, stream, StreamExt};
 use indicatif::{ProgressBar, ProgressStyle};
+use nalgebra::DMatrix;
 use reqwest::Client;
 
 const BASE_API: &'static str = "https://www.playgwent.com/en/decks/api/guides";
@@ -101,6 +102,28 @@ fn main() -> Result<(), Error> {
     .or_else(|_| download(&client).save(&PATH))?;
 
   println!("Items: {}", disk.deckmeta.len());
+
+  // TODO sample.. need to impl:
+  // 1. Filter out any decks with 0 or negative votes.
+  // 1. Filter out any decks not in the targeted faction.
+  // 1. Dedupe each deck.cards
+  // Frequency Routine:
+  // 1. Get all combinations of pairs in deck.cards
+  // 1. Assign unique Id for each unique combination across all decks (hashing ideal)
+  // 1. For each deck, Construct 1xN Frequency DMatrix where column is the id combination and value is frequency (1)
+  // 1. Add all vectors together to find most frequent pairings
+  // Repeat the frequency routine, but this time identify pairings that typically go together.
+  for (id, deck) in disk.decks {
+    let votes = disk.deckmeta.get(&id).unwrap().votes;
+    if votes <= 1 {
+      continue;
+    }
+    let mut v = DMatrix::from_vec(1, deck.cards.len(), deck.cards);
+    println!("{}", v);
+    v = v * votes as usize;
+    println!("{}", v);
+    break;
+  }
 
   Ok(())
 }
