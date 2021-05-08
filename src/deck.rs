@@ -1,12 +1,12 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize, Debug, Serialize)]
-pub struct DeckList {
-  pub guides: Vec<DeckListItem>,
+pub struct DeckListResponse {
+  pub guides: Vec<DeckMetadata>,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct DeckListItem {
+pub struct DeckMetadata {
   pub id: usize,
   pub votes: i32,
   #[serde(rename = "leaderId")]
@@ -20,21 +20,13 @@ pub struct Faction {
   pub short: String,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Serialize)]
+pub struct DeckResponse {
+  pub deck: Deck,
+}
+
+#[derive(Deserialize, Debug, Serialize)]
 pub struct Deck {
   #[serde(rename = "srcCardTemplates")]
   pub cards: Vec<usize>,
-}
-
-impl DeckList {
-  pub fn merge(mut self, other: &DeckList) -> DeckList {
-    self.guides.extend(other.guides.clone());
-    self
-  }
-}
-
-impl Default for DeckList {
-  fn default() -> Self {
-    DeckList { guides: Vec::new() }
-  }
 }

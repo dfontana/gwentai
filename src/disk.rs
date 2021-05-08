@@ -1,13 +1,14 @@
-use crate::deck::DeckList;
+use crate::deck::{Deck, DeckMetadata};
 use anyhow::Error;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
+use std::{collections::HashMap, fs::File};
 
 #[derive(Deserialize, Serialize)]
 pub struct Disk {
   pub page_start: usize,
   pub page_end: usize,
-  pub decks: DeckList,
+  pub deckmeta: HashMap<usize, DeckMetadata>,
+  pub decks: HashMap<usize, Deck>,
 }
 
 impl Disk {
@@ -23,9 +24,18 @@ impl Disk {
     Ok(self)
   }
 
-  pub fn merge(mut self, (page, other): (usize, DeckList)) -> Disk {
+  pub fn merge_meta(mut self, page: usize, dl: Vec<DeckMetadata>) -> Disk {
     self.page_end = page.max(self.page_end);
-    self.decks = self.decks.merge(&other);
+    for dm in dl {
+      if !dm.invalid {
+        self.deckmeta.insert(dm.id, dm);
+      }
+    }
+    self
+  }
+
+  pub fn merge_decks(mut self, decks: Vec<(usize, Deck)>) -> Disk {
+    self.decks.extend(decks);
     self
   }
 }
@@ -35,7 +45,8 @@ impl Default for Disk {
     Disk {
       page_start: 0,
       page_end: 0,
-      decks: DeckList::default(),
+      deckmeta: HashMap::new(),
+      decks: HashMap::new(),
     }
   }
 }
