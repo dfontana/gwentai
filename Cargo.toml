@@ -7,11 +7,24 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# Error wrappers
 anyhow = "1.0"
-futures = "0.3.14"
-indicatif = "0.16.0"
-nalgebra = "0.26.2"
+
+# Server-to-Server HTTP
 reqwest = { version = "0.11", features = ["json"] }
+
+# JSON Serialization/Deserialization
 serde = { version = "1.0.125", features = ["derive"] }
 serde_json = "1.0"
+
+# Async Runtime
 tokio = { version = "1", features = ["full"] }
+
+# Web Framework + Templating
+# TODO https://github.com/djc/askama/issues/588
+askama = { git = "https://github.com/djc/askama.git", features = ["with-axum"] }
+askama_axum = { git="https://github.com/djc/askama.git"}
+axum = "0.4.3"
+tower-http = {version = "0.2.0", features = ["trace"]}
+tracing = "0.1"
+tracing-subscriber = { version="0.3", features = ["env-filter"] }

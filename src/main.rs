@@ -1,129 +1,61 @@
-mod deck;
-mod disk;
+mod playgwent;
 
-use anyhow::Error;
-use deck::{Deck, DeckListResponse, DeckResponse};
-use disk::Disk;
-use futures::{future, stream, StreamExt};
-use indicatif::{ProgressBar, ProgressStyle};
-use nalgebra::DMatrix;
-use reqwest::Client;
+use askama::Template;
+use axum::{
+  extract::{Extension, Path},
+  routing::get,
+  AddExtensionLayer, Router,
+};
+use std::{net::SocketAddr, sync::Arc};
+use tower_http::{
+  trace::{DefaultOnResponse, TraceLayer},
+  LatencyUnit,
+};
+use tracing::{info, Level};
 
-const BASE_API: &'static str = "https://www.playgwent.com/en/decks/api/guides";
-const CONCURRENT_REQUESTS: usize = 30;
-const PATH: &'static str = "decks.json";
+use playgwent::GwentClient;
 
-async fn get_deck_page(
-  http: &Client,
-  pb: &ProgressBar,
-  page: usize,
-) -> Result<(usize, DeckListResponse), Error> {
-  let url = format!("{}/offset/{}/limit/500", BASE_API, page * 500);
-  let res = http.get(url).send().await?;
-  let json = res.json::<DeckListResponse>().await?;
-  pb.inc(1);
-  Ok((page, json))
-}
-
-async fn get_deck(
-  http: &Client,
-  pb: &ProgressBar,
-  id: usize,
-) -> Result<(usize, DeckResponse), Error> {
-  let url = format!("{}/{}", BASE_API, id);
-  let res = http.get(url).send().await?.json::<DeckResponse>().await?;
-  pb.inc(1);
-  Ok((id, res))
+struct State {
+  client: GwentClient,
 }
 
 #[tokio::main]
-async fn download(client: &Client) -> Disk {
-  let sty = ProgressStyle::default_bar()
-    .template("{prefix:>8} {spinner} {bar:40.cyan/blue} {pos:>5}/{len:5} ({percent}%) {msg}")
-    .progress_chars("#>-");
+async fn main() {
+  // Configure Tracing
+  if std::env::var_os("RUST_LOG").is_none() {
+    std::env::set_var("RUST_LOG", "info,tower_http=info")
+  }
+  tracing_subscriber::fmt::init();
 
-  // TODO right now the upper bound on pages is 60, but you'll want a way to incrementally
-  //      increase this each time this is ran.
-  let range = 0..60;
+  let state = Arc::new(State {
+    client: GwentClient::new(),
+  });
 
-  let pb = ProgressBar::new(range.len() as u64);
-  pb.set_style(sty.clone());
-  pb.set_prefix("Metadata");
+  let app = Router::new()
+    .route("/greet/:name", get(greet))
+    .layer(
+      TraceLayer::new_for_http().on_request(()).on_response(
+        DefaultOnResponse::new()
+          .level(Level::INFO)
+          .latency_unit(LatencyUnit::Micros),
+      ),
+    )
+    .layer(AddExtensionLayer::new(state));
 
-  let disk: Disk = stream::iter(range)
-    .map(|page| get_deck_page(&client, &pb, page))
-    .buffer_unordered(CONCURRENT_REQUESTS)
-    .filter_map(|res| {
-      match res {
-        Ok((page, decklist)) => {
-          if !decklist.guides.is_empty() {
-            return future::ready(Some((page, decklist)));
-          }
-        }
-        Err(e) => eprintln!("{:?}", e),
-      }
-      future::ready(None)
-    })
-    .fold(Disk::default(), |a, (page, res)| {
-      future::ready(a.merge_meta(page, res.guides))
-    })
-    .await;
-
-  pb.finish_with_message("Done!");
-
-  let pb2 = ProgressBar::new(disk.deckmeta.len() as u64);
-  pb2.set_style(sty.clone());
-  pb2.set_prefix("Decks");
-
-  let decks = stream::iter(disk.deckmeta.keys().into_iter())
-    .map(|id| get_deck(&client, &pb2, id.to_owned()))
-    .buffer_unordered(CONCURRENT_REQUESTS)
-    .filter_map(|res| match res {
-      Ok((pg, d)) => future::ready(Some((pg, d.deck))),
-      Err(e) => {
-        eprintln!("{:?}", e);
-        future::ready(None)
-      }
-    })
-    .collect::<Vec<(usize, Deck)>>()
-    .await;
-
-  pb2.finish_with_message("Done!");
-
-  disk.merge_decks(decks)
+  let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+  info!("listening on {}", addr);
+  axum::Server::bind(&addr)
+    .serve(app.into_make_service())
+    .await
+    .unwrap();
 }
 
-fn main() -> Result<(), Error> {
-  let client = Client::new();
+async fn greet(Extension(state): Extension<Arc<State>>, Path(name): Path<String>) -> HelloTemplate {
+  HelloTemplate { name }
+}
 
-  // TODO incrementally fetch new items starting at the last page
-  let disk = Disk::load(&PATH)
-    .map_err(|err| eprintln!("Failed to load Decks: {}", err))
-    .or_else(|_| download(&client).save(&PATH))?;
-
-  println!("Items: {}", disk.deckmeta.len());
-
-  // TODO sample.. need to impl:
-  // 1. Filter out any decks with 0 or negative votes.
-  // 1. Filter out any decks not in the targeted faction.
-  // 1. Dedupe each deck.cards
-  // Frequency Routine:
-  // 1. Get all combinations of pairs in deck.cards
-  // 1. Assign unique Id for each unique combination across all decks (hashing ideal)
-  // 1. For each deck, Construct 1xN Frequency DMatrix where column is the id combination and value is frequency (1)
-  // 1. Add all vectors together to find most frequent pairings
-  // Repeat the frequency routine, but this time identify pairings that typically go together.
-  for (id, deck) in disk.decks {
-    let votes = disk.deckmeta.get(&id).unwrap().votes;
-    if votes <= 1 {
-      continue;
-    }
-    let mut v = DMatrix::from_vec(1, deck.cards.len(), deck.cards);
-    println!("{}", v);
-    v = v * votes as usize;
-    println!("{}", v);
-    break;
-  }
-
-  Ok(())
+#[derive(Template)]
+#[template(path = "hello.html")]
+struct HelloTemplate {
+  name: String,
 }
