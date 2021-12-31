@@ -2,6 +2,7 @@ mod deck;
 
 use anyhow::Error;
 use deck::Deck;
+pub use deck::*;
 use reqwest::Client;
 
 const BASE_SITE: &'static str = "https://www.playgwent.com";
@@ -19,7 +20,7 @@ const BASE_API: &'static str = "https://www.playgwent.com/en/decks/api";
 ///     - else 4p
 
 /// Validation Thoughts:
-///   Display a table of card name, each condition state, and final classification 
+///   Display a table of card name, each condition state, and final classification
 ///
 ///   Since there's no API (known) to pull all cards from, you might scan the first N pages
 ///   of guides & dedupe the cards from there.
@@ -52,10 +53,8 @@ pub struct GwentClient {
 }
 
 impl GwentClient {
-  pub fn new() -> GwentClient {
-    GwentClient {
-      http: Client::new(),
-    }
+  pub fn new(http: Client) -> GwentClient {
+    GwentClient { http }
   }
 
   async fn get_deck(&self, hash: &str) -> Result<Deck, Error> {

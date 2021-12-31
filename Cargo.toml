@@ -9,9 +9,13 @@ edition = "2018"
 [dependencies]
 # Error wrappers
 anyhow = "1.0"
+once_cell = "1.9.0"
 
 # Server-to-Server HTTP
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", features = ["json", "gzip", "brotli"] }
+
+# For scraping card data
+scraper = "0.12.0"
 
 # JSON Serialization/Deserialization
 serde = { version = "1.0.125", features = ["derive"] }

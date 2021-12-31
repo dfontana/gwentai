@@ -1,11 +1,14 @@
+mod gwentone;
 mod playgwent;
 
 use askama::Template;
+use askama_axum::IntoResponse;
 use axum::{
   extract::{Extension, Path},
   routing::get,
-  AddExtensionLayer, Router,
+  AddExtensionLayer, Json, Router,
 };
+use reqwest::{Client, StatusCode};
 use std::{net::SocketAddr, sync::Arc};
 use tower_http::{
   trace::{DefaultOnResponse, TraceLayer},
@@ -15,8 +18,11 @@ use tracing::{info, Level};
 
 use playgwent::GwentClient;
 
+use crate::gwentone::GwentOneClient;
+
 struct State {
   client: GwentClient,
+  gwentone: GwentOneClient,
 }
 
 #[tokio::main]
@@ -27,12 +33,15 @@ async fn main() {
   }
   tracing_subscriber::fmt::init();
 
+  let client = Client::new();
   let state = Arc::new(State {
-    client: GwentClient::new(),
+    client: GwentClient::new(client.clone()),
+    gwentone: GwentOneClient::new(client.clone()),
   });
 
   let app = Router::new()
     .route("/greet/:name", get(greet))
+    .route("/cards", get(cards))
     .layer(
       TraceLayer::new_for_http().on_request(()).on_response(
         DefaultOnResponse::new()
@@ -50,8 +59,13 @@ async fn main() {
     .unwrap();
 }
 
-async fn greet(Extension(state): Extension<Arc<State>>, Path(name): Path<String>) -> HelloTemplate {
+async fn greet(Path(name): Path<String>) -> HelloTemplate {
   HelloTemplate { name }
+}
+
+async fn cards(Extension(state): Extension<Arc<State>>) -> impl IntoResponse {
+  let cards = state.gwentone.get_cards().await;
+  (StatusCode::OK, Json(cards))
 }
 
 #[derive(Template)]

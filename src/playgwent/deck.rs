@@ -39,6 +39,8 @@ pub struct Deck {
   pub strategem: Card,
 }
 
+pub type CardId = usize;
+
 #[derive(Deserialize, Debug, Serialize)]
 pub struct Card {
   pub provisionsCost: usize,
@@ -50,13 +52,13 @@ pub struct Card {
   /// One of "bronze", "gold".
   pub cardGroup: String,
   /// Each index is one line. Empty vecs are blank lines.
-  pub tooltip: Vec<Vec<Text>>
+  pub tooltip: Vec<Vec<Text>>,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
 pub struct Image {
   pub small: String,
-  pub big: String
+  pub big: String,
 }
 
 #[derive(Deserialize, Debug, Serialize)]
