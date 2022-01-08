@@ -14,7 +14,7 @@ const BASE_API: &'static str = "https://www.playgwent.com/en/decks/api";
 
 /// Rof16 Notes: (https://www.youtube.com/watch?v=2kCDey-pi34)
 ///   Classification
-///     TODO I don't think this works right; "summon" sometimes means play a card, and 
+///     TODO I don't think this works right; "summon" sometimes means play a card, and
 //        "play" (which isn't always a keyword) can be used. And what about "spawn"?
 ///     - If it's tooltip has a keyword key == "summon", it's a summon
 ///     - If it's tooltip has a text value containing "play", it's a tutor

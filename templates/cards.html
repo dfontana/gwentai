@@ -1,0 +1,63 @@
+<body>
+  <head>
+    <style>
+    .card-art {
+      height: 100px;
+      position: relative;
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .card-img {
+      height: 100%;
+    }
+    .card-border {
+      background-size: contain;
+      height: 100%;
+      width: 100%;
+      top: 0;
+      position: absolute;
+    }
+    .card-border-gold {
+      background-image: url(https://gwent.one/img/assets/medium/other/border_gold.png);
+    }
+    .card-border-bronze {
+      background-image: url(https://gwent.one/img/assets/medium/other/border_bronze.png);
+    }
+    .card-border-none {
+      display: none;
+    }
+    </style>
+  </head>
+ <table>
+    <tr>
+      <th>ID</th>
+      <th>Faction</th>
+      <th>Rarity</th>
+      <th>Group</th>
+      <th>Type</th>
+      <th>Name</th>
+      <th>Power</th>
+      <th>Provision</th> 
+      <th>Image</th>
+    </tr>
+    {% for card in cards %}
+      <tr>
+        <td> {{ card.id }} </td>
+        <td> {{ card.faction }} </td>
+        <td> {{ card.rarity }} </td>
+        <td> {{ card.group }} </td>
+        <td> {{ card.card_type }} </td>
+        <td> {{ card.name }} </td>
+        <td> {{ card.power }} </td>
+        <td> {{ card.armor }} </td>
+        <td> {{ card.provisions }} </td>
+        <td>
+          <div class="card-art">
+            <img class="card-img" loading="lazy" src="{{ card.image }}"/>
+            <div class="card-border card-border-{{ card.group|lower }}"></div>
+          </div>
+      </td>
+      </tr>
+    {% endfor %}
+  </table>
+</body>

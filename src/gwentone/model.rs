@@ -2,7 +2,7 @@ use std::{collections::HashSet, fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum CardType {
   UNIT,
   ABILITY,
@@ -12,7 +12,7 @@ pub enum CardType {
   SPECIAL,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum CardRarity {
   LEGENDARY,
   EPIC,
@@ -20,14 +20,14 @@ pub enum CardRarity {
   COMMON,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum CardGroup {
   GOLD,
   BRONZE,
   NONE,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum CardFaction {
   NEUTRAL,
   SKELLIGE,
@@ -38,7 +38,7 @@ pub enum CardFaction {
   MONSTER,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CardData {
   pub id: usize,
   pub name: String,
@@ -52,6 +52,7 @@ pub struct CardData {
   pub card_type: CardType,
   pub rarity: CardRarity,
   pub group: CardGroup,
+  pub image: String,
 }
 
 impl Display for CardData {
@@ -90,6 +91,12 @@ impl FromStr for CardType {
   }
 }
 
+impl Display for CardType {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{:?}", self)
+  }
+}
+
 impl FromStr for CardFaction {
   type Err = String;
 
@@ -107,6 +114,12 @@ impl FromStr for CardFaction {
   }
 }
 
+impl Display for CardFaction {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{:?}", self)
+  }
+}
+
 impl FromStr for CardRarity {
   type Err = String;
 
@@ -121,6 +134,12 @@ impl FromStr for CardRarity {
   }
 }
 
+impl Display for CardRarity {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{:?}", self)
+  }
+}
+
 impl FromStr for CardGroup {
   type Err = String;
 
@@ -131,5 +150,11 @@ impl FromStr for CardGroup {
       "leader" => Ok(CardGroup::NONE),
       _ => Err(format!("Unknown CardGroup: {:?}", s)),
     }
+  }
+}
+
+impl Display for CardGroup {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{:?}", self)
   }
 }

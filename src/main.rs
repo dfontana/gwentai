@@ -8,6 +8,7 @@ use axum::{
   routing::get,
   AddExtensionLayer, Json, Router,
 };
+use gwentone::CardData;
 use reqwest::{Client, StatusCode};
 use std::{net::SocketAddr, sync::Arc};
 use tower_http::{
@@ -40,7 +41,7 @@ async fn main() {
   });
 
   let app = Router::new()
-    .route("/greet/:name", get(greet))
+    .route("/cards/display", get(cards_display))
     .route("/cards", get(cards))
     .layer(
       TraceLayer::new_for_http().on_request(()).on_response(
@@ -59,8 +60,16 @@ async fn main() {
     .unwrap();
 }
 
-async fn greet(Path(name): Path<String>) -> HelloTemplate {
-  HelloTemplate { name }
+async fn cards_display(Extension(state): Extension<Arc<State>>) -> CardTemplate {
+  CardTemplate {
+    cards: state
+      .gwentone
+      .get_cards()
+      .await
+      .values()
+      .map(|c| c.clone())
+      .collect(),
+  }
 }
 
 async fn cards(Extension(state): Extension<Arc<State>>) -> impl IntoResponse {
@@ -69,7 +78,7 @@ async fn cards(Extension(state): Extension<Arc<State>>) -> impl IntoResponse {
 }
 
 #[derive(Template)]
-#[template(path = "hello.html")]
-struct HelloTemplate {
-  name: String,
+#[template(path = "cards.html")]
+struct CardTemplate {
+  cards: Vec<CardData>,
 }

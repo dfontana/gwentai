@@ -25,6 +25,8 @@ static CARD_CATEGORY_SELECTOR: Lazy<Selector> =
   Lazy::new(|| Selector::parse(".card-category").expect("Failed to parse selector"));
 static CARD_KEYWORD_SELECTOR: Lazy<Selector> =
   Lazy::new(|| Selector::parse(".keyword").expect("Failed to parse selector"));
+static CARD_IMAGE_SELECTOR: Lazy<Selector> =
+  Lazy::new(|| Selector::parse(".card_asset-img > img").expect("Failed to parse selector"));
 
 pub async fn cards(client: Client) -> Result<HashMap<usize, CardData>, Error> {
   let pages = get_pages(&client).await?;
@@ -74,6 +76,11 @@ impl<'a> From<ElementRef<'a>> for CardData {
       .nth(0)
       .unwrap()
       .inner_html();
+    let image = card
+      .select(&CARD_IMAGE_SELECTOR)
+      .nth(0)
+      .map(|img| img.value().attr("src").unwrap())
+      .unwrap_or("");
     let raw_category = card
       .select(&CARD_CATEGORY_SELECTOR)
       .nth(0)
@@ -126,6 +133,7 @@ impl<'a> From<ElementRef<'a>> for CardData {
         .attr("data-color")
         .map(|v| v.parse::<CardGroup>().unwrap())
         .unwrap(),
+      image: image.to_owned(),
     }
   }
 }
